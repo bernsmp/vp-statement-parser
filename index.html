@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statement Parser | Vantage Point Financial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        :root {
+            --navy: #1D295B;
+            --navy-light: #2a3a7c;
+            --navy-dark: #151d42;
+            --navy-glow: rgba(29, 41, 91, 0.15);
+            --ice: #F8FCFF;
+            --ice-blue: #EDF4FA;
+            --teal: #C6DAE8;
+            --teal-light: #dbeaf4;
+            --teal-dark: #9FC5D8;
+            --text: #181818;
+            --text-muted: #5a6a7a;
+            --white: #FFFFFF;
+            --success: #10B981;
+            --success-light: #D1FAE5;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --border: rgba(29, 41, 91, 0.08);
+            --shadow-sm: 0 1px 2px rgba(29, 41, 91, 0.04);
+            --shadow-md: 0 4px 16px rgba(29, 41, 91, 0.06);
+            --shadow-lg: 0 12px 40px rgba(29, 41, 91, 0.1);
+            --shadow-xl: 0 24px 60px rgba(29, 41, 91, 0.14);
+            --shadow-glow: 0 0 60px rgba(29, 41, 91, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--ice);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .ambient-orb-1 {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--ice-blue) 100%);
+            top: -200px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .ambient-orb-2 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, var(--navy-glow) 0%, var(--teal) 100%);
+            bottom: -100px;
+            left: -100px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 48px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .brand-mark {
+            width: 44px;
+            height: 44px;
+            background: var(--navy);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md), 0 0 0 1px rgba(255,255,255,0.1) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-mark::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+        }
+
+        .brand-mark svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--white);
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-name {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--navy);
+            letter-spacing: -0.01em;
+        }
+
+        .hero-title {
+            opacity: 0;
+            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 500;
+            color: var(--navy);
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 1.15rem;
+            font-weight: 400;
+            opacity: 0;
+            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+        }
+
+        /* Upload Zone */
+        .upload-wrapper {
+            opacity: 0;
+            animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .upload-zone {
+            background: var(--white);
+            border: 2px dashed rgba(29, 41, 91, 0.15);
+            border-radius: 24px;
+            padding: 72px 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--teal-light) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--navy);
+            border-style: solid;
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            transform: translateY(-4px);
+        }
+
+        .upload-zone:hover::before {
+            opacity: 1;
+        }
+
+        .upload-zone.drag-over {
+            border-color: var(--navy);
+            border-style: solid;
+            background: var(--ice);
+            transform: scale(1.02);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .upload-zone.processing {
+            pointer-events: none;
+        }
+
+        .upload-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-icon-wrapper {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 28px;
+            position: relative;
+        }
+
+        .upload-icon-bg {
+            position: absolute;
+            inset: 0;
+            background: var(--ice-blue);
+            border-radius: 50%;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .upload-zone:hover .upload-icon-bg {
+            background: var(--navy);
+            transform: scale(1.1);
+        }
+
+        .upload-icon-ring {
+            position: absolute;
+            inset: -8px;
+            border: 2px dashed var(--teal);
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.4s ease;
+            animation: spin-slow 20s linear infinite;
+        }
+
+        @keyframes spin-slow {
+            to { transform: rotate(360deg); }
+        }
+
+        .upload-zone:hover .upload-icon-ring {
+            opacity: 1;
+            inset: -12px;
+        }
+
+        .upload-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-icon svg {
+            width: 36px;
+            height: 36px;
+            stroke: var(--navy);
+            stroke-width: 1.5;
+            fill: none;
+            transition: all 0.4s ease;
+        }
+
+        .upload-zone:hover .upload-icon svg {
+            stroke: var(--white);
+            transform: translateY(-4px);
+        }
+
+        .upload-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.75rem;
+            font-weight: 500;
+            color: var(--navy);
+            margin-bottom: 8px;
+        }
+
+        .upload-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            font-size: 1.05rem;
+        }
+
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--navy);
+            color: var(--white);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+        }
+
+        .upload-btn:hover {
+            background: var(--navy-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .upload-btn:active {
+            transform: translateY(0);
+        }
+
+        .upload-meta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 28px;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--ice);
+            border-radius: 100px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .meta-badge svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2;
+        }
+
+        .meta-badge.security svg {
+            stroke: var(--success);
+        }
+
+        .meta-badge.formats svg {
+            stroke: var(--navy);
+        }
+
+        /* Hidden file input */
+        #fileInput {
+            display: none;
+        }
+
+        /* File Info Card */
+        .file-card {
+            display: none;
+            background: var(--white);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+
+        .file-card.visible {
+            display: block;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .file-card-inner {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .file-icon-box {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--teal-light) 0%, var(--ice-blue) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-icon-box svg {
+            width: 26px;
+            height: 26px;
+            stroke: var(--navy);
+            stroke-width: 1.5;
+        }
+
+        .file-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-meta {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            color: var(--text-muted);
+        }
+
+        .file-action-btn:hover {
+            border-color: var(--navy);
+            color: var(--navy);
+            background: var(--ice);
+        }
+
+        .file-action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Processing State */
+        .processing-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(248, 252, 255, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .processing-overlay.visible {
+            display: flex;
+        }
+
+        .processing-content {
+            text-align: center;
+            animation: pulse-subtle 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .processing-spinner {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 24px;
+            position: relative;
+        }
+
+        .processing-spinner::before,
+        .processing-spinner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+
+        .processing-spinner::before {
+            border-top-color: var(--navy);
+            animation: spin 1s linear infinite;
+        }
+
+        .processing-spinner::after {
+            border-right-color: var(--teal);
+            animation: spin 1.5s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .processing-text {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.5rem;
+            color: var(--navy);
+            margin-bottom: 8px;
+        }
+
+        .processing-subtext {
+            color: var(--text-muted);
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .results-title-group {
+            flex: 1;
+        }
+
+        .results-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2rem;
+            font-weight: 500;
+            color: var(--navy);
+            margin-bottom: 4px;
+        }
+
+        .results-subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .results-stats {
+            display: flex;
+            gap: 32px;
+        }
+
+        .stat-item {
+            text-align: right;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.75rem;
+            font-weight: 500;
+            color: var(--navy);
+        }
+
+        .stat-value.highlight {
+            color: var(--success);
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--navy);
+        }
+
+        th {
+            padding: 18px 24px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.9);
+            white-space: nowrap;
+        }
+
+        th:last-child {
+            text-align: right;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--ice);
+        }
+
+        tbody tr {
+            opacity: 0;
+            animation: fadeInRow 0.4s ease forwards;
+        }
+
+        @keyframes fadeInRow {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        td {
+            padding: 18px 24px;
+            vertical-align: middle;
+        }
+
+        td:last-child {
+            text-align: right;
+        }
+
+        .cell-symbol {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .symbol-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--teal-light) 0%, var(--ice-blue) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: var(--navy);
+            flex-shrink: 0;
+        }
+
+        .symbol-text {
+            font-weight: 700;
+            color: var(--navy);
+            font-size: 1rem;
+        }
+
+        .description {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            max-width: 260px;
+        }
+
+        .type-badge {
+            display: inline-flex;
+            padding: 6px 12px;
+            background: var(--teal);
+            color: var(--navy-dark);
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .number {
+            font-family: 'DM Sans', monospace;
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+
+        .number.value {
+            font-weight: 700;
+            color: var(--navy);
+            font-size: 1.05rem;
+        }
+
+        /* Summary Row */
+        .summary-row {
+            background: linear-gradient(135deg, var(--ice) 0%, var(--teal-light) 100%) !important;
+        }
+
+        .summary-row td {
+            padding: 24px;
+        }
+
+        .summary-row .summary-label {
+            font-weight: 600;
+            color: var(--navy);
+        }
+
+        .summary-row .number.value {
+            font-size: 1.25rem;
+            font-family: 'Playfair Display', Georgia, serif;
+        }
+
+        /* Export Actions */
+        .export-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .export-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .export-info svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--success);
+        }
+
+        .export-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: none;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            background: var(--navy);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            background: var(--navy-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--navy);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--navy);
+            background: var(--ice);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            padding: 18px 28px;
+            background: var(--navy);
+            color: var(--white);
+            border-radius: 14px;
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transform: translateY(120px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1001;
+            font-weight: 500;
+        }
+
+        .toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+        }
+
+        .toast svg {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        /* Success celebration */
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--navy);
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        .confetti-piece:nth-child(2n) { background: var(--teal); }
+        .confetti-piece:nth-child(3n) { background: var(--success); }
+        .confetti-piece:nth-child(4n) { background: var(--navy-light); border-radius: 50%; }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--navy);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 32px 16px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .upload-zone {
+                padding: 48px 24px;
+            }
+
+            .results-header {
+                flex-direction: column;
+            }
+
+            .results-stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stat-item {
+                text-align: left;
+            }
+
+            th, td {
+                padding: 14px 16px;
+            }
+
+            .export-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .export-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg">
+        <div class="ambient-orb ambient-orb-1"></div>
+        <div class="ambient-orb ambient-orb-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="brand">
+                <div class="brand-mark">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="brand-name">Vantage Point Financial</span>
+            </div>
+            <div class="hero-title">
+                <h1><span>Statement Parser</span></h1>
+                <p class="tagline">Extract portfolio positions in seconds, not minutes</p>
+            </div>
+        </header>
+
+        <div class="upload-wrapper">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-content">
+                    <div class="upload-icon-wrapper">
+                        <div class="upload-icon-bg"></div>
+                        <div class="upload-icon-ring"></div>
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 class="upload-title">Drop statement here</h2>
+                    <p class="upload-subtitle">or click to browse your files</p>
+                    <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Select PDF
+                    </button>
+                    <div class="upload-meta">
+                        <div class="meta-badge security">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <polyline points="9 12 11 14 15 10"/>
+                            </svg>
+                            100% secure — data never leaves your browser
+                        </div>
+                        <div class="meta-badge formats">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="3" x2="9" y2="21"/>
+                            </svg>
+                            Schwab, Fidelity, TD Ameritrade
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <input type="file" id="fileInput" accept=".pdf">
+
+        <div class="file-card" id="fileCard">
+            <div class="file-card-inner">
+                <div class="file-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <div class="file-details">
+                    <div class="file-name" id="fileName">document.pdf</div>
+                    <div class="file-meta">
+                        <span id="fileSize">0 KB</span>
+                        <span id="clientName"></span>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn" onclick="processFile()" title="Re-process">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                    </button>
+                    <button class="file-action-btn" onclick="clearFile()" title="Remove">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <section class="results-section" id="resultsSection">
+            <div class="results-header">
+                <div class="results-title-group">
+                    <h2 class="results-title">Portfolio Holdings</h2>
+                    <p class="results-subtitle" id="accountInfo">Account details will appear here</p>
+                </div>
+                <div class="results-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Positions</div>
+                        <div class="stat-value" id="positionCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Total Value</div>
+                        <div class="stat-value highlight" id="totalValue">$0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Market Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="export-section">
+                <div class="export-info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Ready to export — all data extracted successfully
+                </div>
+                <div class="export-actions">
+                    <button class="btn btn-secondary" onclick="copyToClipboard()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        Copy
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadCSV()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            Built with care for <a href="#">Vantage Point Financial</a>
+        </footer>
+    </div>
+
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="processing-spinner"></div>
+            <div class="processing-text">Extracting positions...</div>
+            <div class="processing-subtext">This usually takes a few seconds</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span id="toastMessage">Success!</span>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let parsedData = [];
+        let currentFile = null;
+        let clientName = '';
+        let accountNumber = '';
+        let accountType = '';
+        let statementPeriod = '';
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileCard = document.getElementById('fileCard');
+        const resultsSection = document.getElementById('resultsSection');
+        const processingOverlay = document.getElementById('processingOverlay');
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                handleFile(file);
+            } else {
+                showToast('Please upload a PDF file', false);
+            }
+        });
+
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        async function handleFile(file) {
+            currentFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            fileCard.classList.add('visible');
+
+            await processFile();
+        }
+
+        async function processFile() {
+            if (!currentFile) return;
+
+            processingOverlay.classList.add('visible');
+            uploadZone.classList.add('processing');
+
+            try {
+                const arrayBuffer = await currentFile.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                let fullText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + '\n';
+                }
+
+                // Extract metadata
+                extractMetadata(fullText);
+
+                // Parse positions
+                parsedData = parsePositions(fullText);
+
+                // Display results
+                displayResults();
+
+                // Celebrate!
+                setTimeout(() => {
+                    triggerConfetti();
+                    showToast(`Extracted ${parsedData.length} positions successfully`, true);
+                }, 300);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error parsing PDF. Please try again.', false);
+            } finally {
+                processingOverlay.classList.remove('visible');
+                uploadZone.classList.remove('processing');
+            }
+        }
+
+        function extractMetadata(text) {
+            // Client name
+            const nameMatch = text.match(/(?:Rollover IRA of|IRA of|Account of)\s*([A-Z][A-Z\s]+?)(?:\s*CHARLES|\s*Account|\s*\d)/i);
+            clientName = nameMatch ? nameMatch[1].trim().split(/\s+/).map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ') : '';
+
+            // Account number
+            const acctMatch = text.match(/Account\s*Number\s*(\d{4}-\d{4})/i);
+            accountNumber = acctMatch ? acctMatch[1] : '';
+
+            // Account type
+            if (text.includes('IRA ROLLOVER') || text.includes('Rollover IRA')) accountType = 'Rollover IRA';
+            else if (text.includes('ROTH IRA')) accountType = 'Roth IRA';
+            else if (text.includes('Traditional IRA')) accountType = 'Traditional IRA';
+            else if (text.includes('IRA')) accountType = 'IRA';
+            else accountType = 'Brokerage';
+
+            // Statement period
+            const periodMatch = text.match(/Statement\s*Period\s*([A-Za-z]+\s*\d+[^A-Za-z]*\d{4})/i);
+            statementPeriod = periodMatch ? periodMatch[1].trim() : '';
+
+            // Update UI
+            const clientNameEl = document.getElementById('clientName');
+            if (clientName) {
+                clientNameEl.textContent = `• ${clientName}`;
+            }
+        }
+
+        function parsePositions(text) {
+            const positions = [];
+            const seenSymbols = new Set();
+
+            // Normalize text - remove line breaks within data, normalize spaces
+            const normalizedText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+
+            // Pattern 1: With security type prefix
+            const withTypePattern = /\b(ETF|Stock|Equity|Bond|Fund|Mutual)\s+([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/]+?)\s*,?\s+([\d,]+\.?\d{0,4})\s+(\d+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+
+            let match;
+            while ((match = withTypePattern.exec(normalizedText)) !== null) {
+                const secType = match[1].trim();
+                const symbol = match[2].trim();
+                const description = match[3].trim();
+                const quantity = parseFloat(match[4].replace(/,/g, ''));
+                const price = parseFloat(match[5]);
+                const marketValue = parseFloat(match[6].replace(/,/g, ''));
+
+                if (seenSymbols.has(symbol)) continue;
+                if (['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL'].includes(symbol)) continue;
+                if (quantity === 0 || marketValue === 0) continue;
+
+                seenSymbols.add(symbol);
+                positions.push({
+                    symbol,
+                    description: cleanDescription(description),
+                    quantity,
+                    price,
+                    marketValue,
+                    securityType: secType.toUpperCase() === 'ETF' ? 'ETF' : inferSecurityType(symbol, description)
+                });
+            }
+
+            // Pattern 2: Known fund families (handles commas in quantity like 2,482.0000)
+            const knownFunds = /\b([A-Z]{2,5})\s+((?:INNOVATOR|WISDOMTREE|VANGUARD|ISHARES|SPDR|SCHWAB|INVESCO|BLACKROCK|PROSHARES|DIREXION|FIRST\s*TRUST|STATE\s*STREET)[A-Z0-9\s\-\.&\/]+?)\s*,?\s+([\d,]+\.?\d{0,4})\s+(\d+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+
+            while ((match = knownFunds.exec(normalizedText)) !== null) {
+                const symbol = match[1].trim();
+                const description = match[2].trim();
+                const quantity = parseFloat(match[3].replace(/,/g, ''));
+                const price = parseFloat(match[4]);
+                const marketValue = parseFloat(match[5].replace(/,/g, ''));
+
+                if (seenSymbols.has(symbol)) continue;
+                if (['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL'].includes(symbol)) continue;
+                if (quantity === 0 || marketValue === 0) continue;
+
+                seenSymbols.add(symbol);
+                positions.push({
+                    symbol,
+                    description: cleanDescription(description),
+                    quantity,
+                    price,
+                    marketValue,
+                    securityType: inferSecurityType(symbol, description)
+                });
+            }
+
+            // Pattern 3: General fallback (handles commas in quantity)
+            const generalPattern = /\b([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/]{5,50}?)\s*,?\s+([\d,]{1,10}\.?\d{0,4})\s+(\d{1,4}\.?\d{2,5})\s+([\d,]{1,10}\.?\d{2})/gi;
+
+            while ((match = generalPattern.exec(normalizedText)) !== null) {
+                const symbol = match[1].trim();
+                const description = match[2].trim();
+                const quantity = parseFloat(match[3].replace(/,/g, ''));
+                const price = parseFloat(match[4]);
+                const marketValue = parseFloat(match[5].replace(/,/g, ''));
+
+                if (seenSymbols.has(symbol)) continue;
+                if (['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL', 'CASH', 'BANK', 'TYPE'].includes(symbol)) continue;
+                if (quantity === 0 || marketValue === 0) continue;
+                if (price > 10000 || price < 0.01) continue;
+                if (marketValue < 100) continue;
+
+                seenSymbols.add(symbol);
+                positions.push({
+                    symbol,
+                    description: cleanDescription(description),
+                    quantity,
+                    price,
+                    marketValue,
+                    securityType: inferSecurityType(symbol, description)
+                });
+            }
+
+            positions.sort((a, b) => b.marketValue - a.marketValue);
+            return positions;
+        }
+
+        function cleanDescription(desc) {
+            return desc
+                .replace(/\s+/g, ' ')
+                .replace(/,\s*$/, '')
+                .replace(/\s*,\s*/g, ' ')
+                .trim()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        }
+
+        function inferSecurityType(symbol, description) {
+            const desc = (description || '').toUpperCase();
+            if (desc.includes('ETF') || desc.includes('INNOVATOR') || desc.includes('WISDOMTREE') ||
+                desc.includes('ISHARES') || desc.includes('SPDR') || desc.includes('VANGUARD')) {
+                return 'ETF';
+            }
+            if (desc.includes('BOND') || desc.includes('TREASURY')) return 'Bond';
+            if (desc.includes('FUND') || desc.includes('MUTUAL')) return 'Fund';
+            return 'Equity';
+        }
+
+        function displayResults() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            let totalValue = 0;
+
+            parsedData.forEach((p, i) => {
+                totalValue += p.marketValue;
+
+                const row = document.createElement('tr');
+                row.style.animationDelay = `${i * 0.05}s`;
+                row.innerHTML = `
+                    <td>
+                        <div class="cell-symbol">
+                            <div class="symbol-icon">${p.symbol.substring(0, 2)}</div>
+                            <span class="symbol-text">${p.symbol}</span>
+                        </div>
+                    </td>
+                    <td><span class="description">${p.description}</span></td>
+                    <td><span class="type-badge">${p.securityType}</span></td>
+                    <td class="number">${formatNumber(p.quantity, 4)}</td>
+                    <td class="number">$${formatNumber(p.price, 2)}</td>
+                    <td class="number value">$${formatNumber(p.marketValue, 2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Summary row
+            const summaryRow = document.createElement('tr');
+            summaryRow.className = 'summary-row';
+            summaryRow.style.animationDelay = `${parsedData.length * 0.05}s`;
+            summaryRow.innerHTML = `
+                <td colspan="5" class="summary-label">Total Portfolio Value</td>
+                <td class="number value">$${formatNumber(totalValue, 2)}</td>
+            `;
+            tableBody.appendChild(summaryRow);
+
+            // Update stats
+            document.getElementById('positionCount').textContent = parsedData.length;
+            document.getElementById('totalValue').textContent = '$' + formatNumber(totalValue, 2);
+
+            // Account info
+            let infoText = [];
+            if (accountNumber) infoText.push(`Account ${accountNumber}`);
+            if (accountType) infoText.push(accountType);
+            if (statementPeriod) infoText.push(statementPeriod);
+            document.getElementById('accountInfo').textContent = infoText.join(' • ') || 'Portfolio positions extracted';
+
+            resultsSection.classList.add('visible');
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function formatNumber(num, decimals) {
+            return num.toLocaleString('en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function downloadCSV() {
+            if (parsedData.length === 0) return;
+
+            const headers = ['Symbol', 'Description', 'Security Type', 'Quantity', 'Price', 'Market Value', 'Account Number', 'Account Type', 'Client Name'];
+            const rows = parsedData.map(p => [
+                p.symbol,
+                `"${p.description}"`,
+                p.securityType,
+                p.quantity,
+                p.price,
+                p.marketValue,
+                accountNumber,
+                accountType,
+                clientName
+            ]);
+
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            const filename = clientName ?
+                `${clientName.replace(/\s+/g, '_')}_holdings_${Date.now()}.csv` :
+                `holdings_${Date.now()}.csv`;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('CSV downloaded successfully', true);
+        }
+
+        function copyToClipboard() {
+            if (parsedData.length === 0) return;
+
+            const headers = ['Symbol', 'Description', 'Type', 'Quantity', 'Price', 'Market Value'];
+            const rows = parsedData.map(p => [
+                p.symbol, p.description, p.securityType, p.quantity, p.price, p.marketValue
+            ]);
+
+            const text = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard', true);
+            });
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            fileCard.classList.remove('visible');
+            resultsSection.classList.remove('visible');
+            parsedData = [];
+            currentFile = null;
+            clientName = '';
+            accountNumber = '';
+        }
+
+        function showToast(message, success = true) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.textContent = message;
+            toast.className = 'toast' + (success ? ' success' : '');
+            toast.classList.add('visible');
+
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 4000);
+        }
+
+        function triggerConfetti() {
+            const container = document.createElement('div');
+            container.className = 'confetti';
+            container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;';
+
+            for (let i = 0; i < 50; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.cssText = `
+                    left: ${Math.random() * 100}%;
+                    top: -10px;
+                    animation-delay: ${Math.random() * 0.5}s;
+                    animation-duration: ${2 + Math.random() * 2}s;
+                    transform: rotate(${Math.random() * 360}deg);
+                `;
+                container.appendChild(piece);
+            }
+
+            document.body.appendChild(container);
+            setTimeout(() => container.remove(), 4000);
+        }
+    </script>
+</body>
+</html>
