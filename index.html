@@ -1290,24 +1290,64 @@
             const positions = [];
             const seenSymbols = new Set();
 
-            // Normalize text - remove line breaks within data, normalize spaces
-            const normalizedText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+            // Clean up special characters and normalize
+            let cleanText = text
+                .replace(/◊/g, '')  // Remove diamond symbols
+                .replace(/\u00a0/g, ' ')  // Non-breaking spaces
+                .replace(/\r/g, '')
+                .replace(/\n/g, ' ')
+                .replace(/\s+/g, ' ');
 
-            // Pattern 1: With security type prefix
-            const withTypePattern = /\b(ETF|Stock|Equity|Bond|Fund|Mutual)\s+([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/]+?)\s*,?\s+([\d,]+\.?\d{0,4})\s+(\d+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+            // Detect section-based format (Positions - Equities, Positions - Mutual Funds, etc.)
+            const hasSections = /Positions\s*[-–]\s*(Equities|Mutual Funds|Exchange Traded Funds)/i.test(cleanText);
+
+            if (hasSections) {
+                // Section-based parsing for newer Schwab format
+                parseSection(cleanText, 'Equities', 'Equity', positions, seenSymbols);
+                parseSection(cleanText, 'Mutual Funds', 'Mutual Fund', positions, seenSymbols);
+                parseSection(cleanText, 'Exchange Traded Funds', 'ETF', positions, seenSymbols);
+            }
+
+            // Pattern 1: "Mutual Fund" as two-word type prefix
+            const mutualFundPattern = /Mutual\s+Fund\s+([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/\(\)]+?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
 
             let match;
-            while ((match = withTypePattern.exec(normalizedText)) !== null) {
+            while ((match = mutualFundPattern.exec(cleanText)) !== null) {
+                const symbol = match[1].trim();
+                const description = match[2].trim();
+                const quantity = parseFloat(match[3].replace(/,/g, ''));
+                const price = parseFloat(match[4].replace(/,/g, ''));
+                const marketValue = parseFloat(match[5].replace(/,/g, ''));
+
+                if (seenSymbols.has(symbol)) continue;
+                if (isExcludedSymbol(symbol)) continue;
+                if (!isValidPosition(quantity, price, marketValue)) continue;
+
+                seenSymbols.add(symbol);
+                positions.push({
+                    symbol,
+                    description: cleanDescription(description),
+                    quantity,
+                    price,
+                    marketValue,
+                    securityType: 'Mutual Fund'
+                });
+            }
+
+            // Pattern 2: With single-word security type prefix (ETF, Stock, etc.)
+            const withTypePattern = /\b(ETF|Stock|Equity|Bond|Fund)\s+([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/\(\)]+?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+
+            while ((match = withTypePattern.exec(cleanText)) !== null) {
                 const secType = match[1].trim();
                 const symbol = match[2].trim();
                 const description = match[3].trim();
                 const quantity = parseFloat(match[4].replace(/,/g, ''));
-                const price = parseFloat(match[5]);
+                const price = parseFloat(match[5].replace(/,/g, ''));
                 const marketValue = parseFloat(match[6].replace(/,/g, ''));
 
                 if (seenSymbols.has(symbol)) continue;
-                if (['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL'].includes(symbol)) continue;
-                if (quantity === 0 || marketValue === 0) continue;
+                if (isExcludedSymbol(symbol)) continue;
+                if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 seenSymbols.add(symbol);
                 positions.push({
@@ -1320,19 +1360,19 @@
                 });
             }
 
-            // Pattern 2: Known fund families (handles commas in quantity like 2,482.0000)
-            const knownFunds = /\b([A-Z]{2,5})\s+((?:INNOVATOR|WISDOMTREE|VANGUARD|ISHARES|SPDR|SCHWAB|INVESCO|BLACKROCK|PROSHARES|DIREXION|FIRST\s*TRUST|STATE\s*STREET)[A-Z0-9\s\-\.&\/]+?)\s*,?\s+([\d,]+\.?\d{0,4})\s+(\d+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+            // Pattern 3: Known fund families
+            const knownFunds = /\b([A-Z]{2,5})\s+((?:INNOVATOR|WISDOMTREE|VANGUARD|ISHARES|SPDR|SCHWAB|INVESCO|BLACKROCK|PROSHARES|DIREXION|FIRST\s*TRUST|STATE\s*STREET|SEI|T\.?\s*ROWE|PIMCO|AMAZON|ALPHABET|BRITISH|UPSTART|GLOBAL|INVSC)[A-Z0-9\s\-\.&\/\(\)]+?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
 
-            while ((match = knownFunds.exec(normalizedText)) !== null) {
+            while ((match = knownFunds.exec(cleanText)) !== null) {
                 const symbol = match[1].trim();
                 const description = match[2].trim();
                 const quantity = parseFloat(match[3].replace(/,/g, ''));
-                const price = parseFloat(match[4]);
+                const price = parseFloat(match[4].replace(/,/g, ''));
                 const marketValue = parseFloat(match[5].replace(/,/g, ''));
 
                 if (seenSymbols.has(symbol)) continue;
-                if (['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL'].includes(symbol)) continue;
-                if (quantity === 0 || marketValue === 0) continue;
+                if (isExcludedSymbol(symbol)) continue;
+                if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 seenSymbols.add(symbol);
                 positions.push({
@@ -1345,19 +1385,19 @@
                 });
             }
 
-            // Pattern 3: General fallback (handles commas in quantity)
-            const generalPattern = /\b([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/]{5,50}?)\s*,?\s+([\d,]{1,10}\.?\d{0,4})\s+(\d{1,4}\.?\d{2,5})\s+([\d,]{1,10}\.?\d{2})/gi;
+            // Pattern 4: General fallback for remaining positions
+            const generalPattern = /\b([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/\(\)]{5,60}?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
 
-            while ((match = generalPattern.exec(normalizedText)) !== null) {
+            while ((match = generalPattern.exec(cleanText)) !== null) {
                 const symbol = match[1].trim();
                 const description = match[2].trim();
                 const quantity = parseFloat(match[3].replace(/,/g, ''));
-                const price = parseFloat(match[4]);
+                const price = parseFloat(match[4].replace(/,/g, ''));
                 const marketValue = parseFloat(match[5].replace(/,/g, ''));
 
                 if (seenSymbols.has(symbol)) continue;
-                if (['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL', 'CASH', 'BANK', 'TYPE'].includes(symbol)) continue;
-                if (quantity === 0 || marketValue === 0) continue;
+                if (isExcludedSymbol(symbol)) continue;
+                if (!isValidPosition(quantity, price, marketValue)) continue;
                 if (price > 10000 || price < 0.01) continue;
                 if (marketValue < 100) continue;
 
@@ -1376,6 +1416,50 @@
             return positions;
         }
 
+        function parseSection(text, sectionName, securityType, positions, seenSymbols) {
+            // Find section boundaries
+            const sectionRegex = new RegExp(`Positions\\s*[-–]\\s*${sectionName}([\\s\\S]*?)(?=Positions\\s*[-–]|Total\\s+(?:Equities|Mutual|Exchange)|Transaction|$)`, 'i');
+            const sectionMatch = text.match(sectionRegex);
+            if (!sectionMatch) return;
+
+            const sectionText = sectionMatch[1];
+
+            // Pattern for rows in section: SYMBOL DESCRIPTION QTY PRICE VALUE [other columns...]
+            const rowPattern = /\b([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/\(\)]+?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+
+            let match;
+            while ((match = rowPattern.exec(sectionText)) !== null) {
+                const symbol = match[1].trim();
+                const description = match[2].trim();
+                const quantity = parseFloat(match[3].replace(/,/g, ''));
+                const price = parseFloat(match[4].replace(/,/g, ''));
+                const marketValue = parseFloat(match[5].replace(/,/g, ''));
+
+                if (seenSymbols.has(symbol)) continue;
+                if (isExcludedSymbol(symbol)) continue;
+                if (!isValidPosition(quantity, price, marketValue)) continue;
+
+                seenSymbols.add(symbol);
+                positions.push({
+                    symbol,
+                    description: cleanDescription(description),
+                    quantity,
+                    price,
+                    marketValue,
+                    securityType
+                });
+            }
+        }
+
+        function isExcludedSymbol(symbol) {
+            const excluded = ['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL', 'CASH', 'BANK', 'TYPE', 'FUND', 'THIS', 'NET', 'ADR', 'SHS', 'ORD'];
+            return excluded.includes(symbol);
+        }
+
+        function isValidPosition(quantity, price, marketValue) {
+            return quantity > 0 && price > 0 && marketValue > 0;
+        }
+
         function cleanDescription(desc) {
             return desc
                 .replace(/\s+/g, ' ')
@@ -1389,12 +1473,30 @@
 
         function inferSecurityType(symbol, description) {
             const desc = (description || '').toUpperCase();
+
+            // ETFs
             if (desc.includes('ETF') || desc.includes('INNOVATOR') || desc.includes('WISDOMTREE') ||
-                desc.includes('ISHARES') || desc.includes('SPDR') || desc.includes('VANGUARD')) {
+                desc.includes('ISHARES') || desc.includes('SPDR') || desc.includes('INVESCO') ||
+                desc.includes('PROSHARES') || desc.includes('GLOBAL X') || desc.includes('INVSC')) {
                 return 'ETF';
             }
+
+            // Mutual Funds
+            if (desc.includes('SEI ') || desc.includes('T. ROWE') || desc.includes('ROWE PRICE') ||
+                desc.includes('PIMCO') || desc.includes('FIDELITY') || desc.includes('AMERICAN FUNDS') ||
+                desc.includes('(SIT)') || desc.includes('(SIMT)') || desc.includes('FLOATING RATE')) {
+                return 'Mutual Fund';
+            }
+
             if (desc.includes('BOND') || desc.includes('TREASURY')) return 'Bond';
             if (desc.includes('FUND') || desc.includes('MUTUAL')) return 'Fund';
+
+            // Common stocks
+            if (desc.includes('INC') || desc.includes('CORP') || desc.includes('LTD') ||
+                desc.includes('PLC') || desc.includes('HLDGS') || desc.includes('COM')) {
+                return 'Equity';
+            }
+
             return 'Equity';
         }
 
