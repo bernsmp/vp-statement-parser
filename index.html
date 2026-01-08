@@ -1456,6 +1456,7 @@
 
                 if (seenSymbols.has(symbol)) continue;
                 if (isExcludedSymbol(symbol)) continue;
+                if (isExcludedDescription(rawDesc)) continue;
                 if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 // Clean up concatenated description (add spaces before caps)
@@ -1488,6 +1489,7 @@
 
                 if (seenSymbols.has(symbol)) continue;
                 if (isExcludedSymbol(symbol)) continue;
+                if (isExcludedDescription(description || rawDesc || '')) continue;
                 if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 seenSymbols.add(symbol);
@@ -1514,6 +1516,7 @@
 
                 if (seenSymbols.has(symbol)) continue;
                 if (isExcludedSymbol(symbol)) continue;
+                if (isExcludedDescription(description || rawDesc || '')) continue;
                 if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 seenSymbols.add(symbol);
@@ -1539,6 +1542,7 @@
 
                 if (seenSymbols.has(symbol)) continue;
                 if (isExcludedSymbol(symbol)) continue;
+                if (isExcludedDescription(description || rawDesc || '')) continue;
                 if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 seenSymbols.add(symbol);
@@ -1564,6 +1568,7 @@
 
                 if (seenSymbols.has(symbol)) continue;
                 if (isExcludedSymbol(symbol)) continue;
+                if (isExcludedDescription(description || rawDesc || '')) continue;
                 if (!isValidPosition(quantity, price, marketValue)) continue;
                 if (price > 10000 || price < 0.01) continue;
                 if (marketValue < 100) continue;
@@ -1604,6 +1609,7 @@
 
                 if (seenSymbols.has(symbol)) continue;
                 if (isExcludedSymbol(symbol)) continue;
+                if (isExcludedDescription(description || rawDesc || '')) continue;
                 if (!isValidPosition(quantity, price, marketValue)) continue;
 
                 seenSymbols.add(symbol);
@@ -1619,12 +1625,42 @@
         }
 
         function isExcludedSymbol(symbol) {
-            const excluded = ['ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL', 'CASH', 'BANK', 'TYPE', 'FUND', 'THIS', 'NET', 'ADR', 'SHS', 'ORD'];
+            const excluded = [
+                'ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL', 'CASH', 'BANK', 'TYPE',
+                'FUND', 'THIS', 'NET', 'ADR', 'SHS', 'ORD', 'OTHER', 'ACCT', 'COST', 'YIELD',
+                'ITY', 'GLB', 'POI', 'TING', 'RATE', // OCR fragments
+                'DATE', 'ACTION', 'SYMBOL', 'CUSIP', 'PRICE', 'QTY', 'VALUE', 'BASIS'
+            ];
             return excluded.includes(symbol);
         }
 
+        function isExcludedDescription(desc) {
+            const excludePatterns = [
+                /account\s*transfer/i,
+                /other\s*activity/i,
+                /reinvested\s*shares/i,
+                /cost\s*basis/i,
+                /unrealized\s*gain/i,
+                /yield\s*income/i,
+                /total\s*ytd/i,
+                /^acct\s/i,
+                /purchase/i,
+                /dividend/i,
+                /withdrawal/i
+            ];
+            return excludePatterns.some(p => p.test(desc));
+        }
+
         function isValidPosition(quantity, price, marketValue) {
-            return quantity > 0 && price > 0 && marketValue > 0;
+            if (quantity <= 0 || price <= 0 || marketValue <= 0) return false;
+            // Sanity checks
+            if (price > 5000) return false; // No stock > $5000/share typically
+            if (quantity > 100000) return false; // Unrealistic quantities
+            // Check if calculated value is roughly correct (within 20%)
+            const calcValue = quantity * price;
+            const ratio = marketValue / calcValue;
+            if (ratio < 0.8 || ratio > 1.2) return false;
+            return true;
         }
 
         function cleanDescription(desc) {
