@@ -1235,11 +1235,17 @@
                     fullText += pageText + '\n';
                 }
 
+                // DEBUG: Log extracted text
+                console.log('=== EXTRACTED TEXT ===');
+                console.log(fullText.substring(0, 3000));
+                console.log('=== END PREVIEW ===');
+
                 // Extract metadata
                 extractMetadata(fullText);
 
                 // Parse positions
                 parsedData = parsePositions(fullText);
+                console.log('Parsed positions:', parsedData.length);
 
                 // Display results
                 displayResults();
