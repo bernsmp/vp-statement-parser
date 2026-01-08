@@ -1629,9 +1629,10 @@
                 'ETF', 'IRA', 'USD', 'YTD', 'THE', 'FOR', 'AND', 'TOTAL', 'CASH', 'BANK', 'TYPE',
                 'FUND', 'THIS', 'NET', 'ADR', 'SHS', 'ORD', 'OTHER', 'ACCT', 'COST', 'YIELD',
                 'ITY', 'GLB', 'POI', 'TING', 'RATE', // OCR fragments
-                'DATE', 'ACTION', 'SYMBOL', 'CUSIP', 'PRICE', 'QTY', 'VALUE', 'BASIS'
+                'DATE', 'ACTION', 'SYMBOL', 'CUSIP', 'PRICE', 'QTY', 'VALUE', 'BASIS',
+                'EST', 'ANNUAL', 'INCOME', 'GAIN', 'LOSS', 'MARKET'
             ];
-            return excluded.includes(symbol);
+            return excluded.includes(symbol.toUpperCase());
         }
 
         function isExcludedDescription(desc) {
