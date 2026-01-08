@@ -1302,6 +1302,12 @@
                 .replace(/\u00a0/g, ' ')  // Non-breaking spaces
                 .replace(/\r/g, '')
                 .replace(/\n/g, ' ')
+                // Add spaces before numbers that follow letters (fixes merged text)
+                .replace(/([A-Z\)])(\d)/g, '$1 $2')
+                // Add space after "MutualFund" and similar merged words
+                .replace(/MutualFund/g, 'Mutual Fund')
+                .replace(/SecurityType/g, 'Security Type')
+                .replace(/MarketValue/g, 'Market Value')
                 .replace(/\s+/g, ' ');
 
             // Detect section-based format (Positions - Equities, Positions - Mutual Funds, etc.)
@@ -1314,10 +1320,43 @@
                 parseSection(cleanText, 'Exchange Traded Funds', 'ETF', positions, seenSymbols);
             }
 
-            // Pattern 1: "Mutual Fund" as two-word type prefix
-            const mutualFundPattern = /Mutual\s+Fund\s+([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/\(\)]+?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+            // Pattern 0: Schwab format with concatenated descriptions
+            // Format: "Mutual Fund SIEMX SEIEMERGINGMARKETS...F(SIT) 688.4510 14.12000 9,720.93"
+            const schwabMutualFund = /Mutual\s+Fund\s+([A-Z]{3,5})\s+([A-Z][A-Z0-9\(\)]+)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
 
             let match;
+            while ((match = schwabMutualFund.exec(cleanText)) !== null) {
+                const symbol = match[1].trim();
+                const rawDesc = match[2].trim();
+                const quantity = parseFloat(match[3].replace(/,/g, ''));
+                const price = parseFloat(match[4].replace(/,/g, ''));
+                const marketValue = parseFloat(match[5].replace(/,/g, ''));
+
+                if (seenSymbols.has(symbol)) continue;
+                if (isExcludedSymbol(symbol)) continue;
+                if (!isValidPosition(quantity, price, marketValue)) continue;
+
+                // Clean up concatenated description (add spaces before caps)
+                const description = rawDesc
+                    .replace(/([a-z])([A-Z])/g, '$1 $2')
+                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+                    .replace(/\(SIT\)|\(SIMT\)/gi, '')
+                    .trim();
+
+                seenSymbols.add(symbol);
+                positions.push({
+                    symbol,
+                    description: cleanDescription(description),
+                    quantity,
+                    price,
+                    marketValue,
+                    securityType: 'Mutual Fund'
+                });
+            }
+
+            // Pattern 1: "Mutual Fund" as two-word type prefix (with spaces in description)
+            const mutualFundPattern = /Mutual\s+Fund\s+([A-Z]{2,5})\s+([A-Z][A-Z0-9\s\-\.&\/\(\)]+?)\s+([\d,]+\.?\d{0,4})\s+([\d,]+\.?\d{2,5})\s+([\d,]+\.?\d{2})/gi;
+
             while ((match = mutualFundPattern.exec(cleanText)) !== null) {
                 const symbol = match[1].trim();
                 const description = match[2].trim();
