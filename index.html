@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --navy: #1D295B;
@@ -582,6 +583,48 @@
             color: var(--text-muted);
         }
 
+        .processing-progress {
+            width: 280px;
+            height: 6px;
+            background: var(--ice-blue);
+            border-radius: 3px;
+            margin: 20px auto 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .processing-progress.visible {
+            display: block;
+        }
+
+        .processing-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--navy) 0%, var(--teal-dark) 100%);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .processing-detail {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            opacity: 0.8;
+        }
+
+        .ocr-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--teal-light);
+            color: var(--navy);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+
         /* Results Section */
         .results-section {
             display: none;
@@ -1150,10 +1193,17 @@
     <div class="processing-overlay" id="processingOverlay">
         <div class="processing-content">
             <div class="processing-spinner"></div>
-            <div class="processing-text">Extracting positions...</div>
-            <div class="processing-subtext">This usually takes a few seconds</div>
+            <div class="processing-text" id="processingText">Extracting positions...</div>
+            <div class="processing-subtext" id="processingSubtext">This usually takes a few seconds</div>
+            <div class="processing-progress" id="processingProgress">
+                <div class="processing-progress-bar" id="processingBar"></div>
+            </div>
+            <div class="processing-detail" id="processingDetail"></div>
         </div>
     </div>
+
+    <!-- Hidden canvas for PDF rendering -->
+    <canvas id="pdfCanvas" style="display: none;"></canvas>
 
     <div class="toast" id="toast">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1222,11 +1272,14 @@
 
             processingOverlay.classList.add('visible');
             uploadZone.classList.add('processing');
+            updateProgress('Extracting positions...', 'Reading PDF...', 0);
 
             try {
                 const arrayBuffer = await currentFile.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
+                // Step 1: Try text extraction first
+                updateProgress('Extracting positions...', 'Extracting text...', 10);
                 let fullText = '';
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
@@ -1235,25 +1288,32 @@
                     fullText += pageText + '\n';
                 }
 
-                // DEBUG: Log extracted text
-                console.log('=== EXTRACTED TEXT ===');
-                console.log(fullText.substring(0, 3000));
-                console.log('=== END PREVIEW ===');
+                console.log('=== EXTRACTED TEXT (first 2000 chars) ===');
+                console.log(fullText.substring(0, 2000));
 
-                // Extract metadata
+                // Step 2: Check if we got meaningful text
+                const hasText = fullText.replace(/\s/g, '').length > 500;
+
+                if (!hasText) {
+                    // Scanned PDF - use OCR
+                    console.log('No text found, using OCR...');
+                    fullText = await performOCR(pdf);
+                }
+
+                // Step 3: Extract metadata and parse
+                updateProgress('Extracting positions...', 'Analyzing data...', 90);
                 extractMetadata(fullText);
-
-                // Parse positions
                 parsedData = parsePositions(fullText);
                 console.log('Parsed positions:', parsedData.length);
 
-                // Display results
+                // Step 4: Display results
                 displayResults();
 
                 // Celebrate!
                 setTimeout(() => {
                     triggerConfetti();
-                    showToast(`Extracted ${parsedData.length} positions successfully`, true);
+                    const ocrNote = !hasText ? ' (via OCR)' : '';
+                    showToast(`Extracted ${parsedData.length} positions${ocrNote}`, true);
                 }, 300);
 
             } catch (error) {
@@ -1262,7 +1322,69 @@
             } finally {
                 processingOverlay.classList.remove('visible');
                 uploadZone.classList.remove('processing');
+                resetProgress();
             }
+        }
+
+        function updateProgress(title, subtitle, percent) {
+            document.getElementById('processingText').textContent = title;
+            document.getElementById('processingSubtext').textContent = subtitle;
+            if (percent > 0) {
+                document.getElementById('processingProgress').classList.add('visible');
+                document.getElementById('processingBar').style.width = percent + '%';
+            }
+        }
+
+        function resetProgress() {
+            document.getElementById('processingProgress').classList.remove('visible');
+            document.getElementById('processingBar').style.width = '0%';
+            document.getElementById('processingDetail').textContent = '';
+        }
+
+        async function performOCR(pdf) {
+            updateProgress('Scanning document...', 'Initializing OCR engine...', 15);
+
+            const canvas = document.getElementById('pdfCanvas');
+            const ctx = canvas.getContext('2d');
+            let fullText = '';
+
+            // Only OCR first 5 pages (positions are usually in first few pages)
+            const pagesToScan = Math.min(pdf.numPages, 5);
+
+            for (let i = 1; i <= pagesToScan; i++) {
+                const progress = 15 + (i / pagesToScan) * 70;
+                updateProgress('Scanning document...', `Reading page ${i} of ${pagesToScan}...`, progress);
+                document.getElementById('processingDetail').textContent = 'OCR may take 10-30 seconds';
+
+                // Render page to canvas
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2.0 }); // Higher scale = better OCR
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
+
+                // OCR the canvas
+                try {
+                    const result = await Tesseract.recognize(canvas, 'eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                const pageProgress = 15 + ((i - 1 + m.progress) / pagesToScan) * 70;
+                                document.getElementById('processingBar').style.width = pageProgress + '%';
+                            }
+                        }
+                    });
+                    fullText += result.data.text + '\n';
+                    console.log(`Page ${i} OCR complete:`, result.data.text.substring(0, 500));
+                } catch (ocrError) {
+                    console.error(`OCR error on page ${i}:`, ocrError);
+                }
+            }
+
+            return fullText;
         }
 
         function extractMetadata(text) {
