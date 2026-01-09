@@ -1799,18 +1799,19 @@
                     const [symbol, description, secType, quantity, price, marketValue] = parts;
                     // Skip header row
                     if (symbol.toUpperCase() === 'SYMBOL') return;
-                    // Skip invalid symbols (like "End" from parsing errors)
+                    // Skip invalid symbols (like "End", "CEF", "Fund" from parsing errors)
                     if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
+                    if (['CEF', 'END', 'FUND', 'TYPE'].includes(symbol.toUpperCase())) return;
                     // Skip duplicates
                     if (seenSymbols.has(symbol.toUpperCase())) return;
                     seenSymbols.add(symbol.toUpperCase());
                     // Normalize security type
                     let type = secType;
-                    if (/mutual\s*fund/i.test(secType)) type = 'Mutual Fund';
+                    if (/closed/i.test(secType)) type = 'Closed-End Fund';
+                    else if (/mutual\s*fund/i.test(secType)) type = 'Mutual Fund';
                     else if (/equity|stock/i.test(secType)) type = 'Equity';
                     else if (/^etf$/i.test(secType)) type = 'ETF';
                     else if (/bond/i.test(secType)) type = 'Bond';
-                    else if (/cef/i.test(secType) || /closed.*end/i.test(secType)) type = 'CEF';
                     // Create a text line that our parser can match
                     converted += `${type} ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
                 } else if (parts.length >= 5) {

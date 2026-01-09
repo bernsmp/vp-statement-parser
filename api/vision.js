@@ -47,14 +47,14 @@ AAPL | Apple Inc | Equity | 100.0000 | 175.50 | 17550.00
 VTI | Vanguard Total Stock Market ETF | ETF | 50.0000 | 220.30 | 11015.00
 VFIAX | Vanguard 500 Index Fund | Mutual Fund | 25.0000 | 400.00 | 10000.00
 
-Security Type Guidelines:
-- Equity: Individual stocks (AAPL, GOOGL, AMZN, BTI, UPST, etc.)
-- ETF: Exchange-traded funds (SPY, QQQ, SPMO, QYLD, QQQM, etc.)
-- Mutual Fund: Mutual funds, often 5-letter symbols ending in X (VFIAX, TRMVX, SELCX, PFFRX, etc.)
-- CEF: Closed-end funds like PDI, PTY, PCI, PIMCO income funds
-- Bond: Fixed income securities
+Security Type (use EXACTLY one of these values):
+- Equity (for individual stocks: AAPL, GOOGL, AMZN, BTI, UPST)
+- ETF (for exchange-traded funds: SPY, QQQ, SPMO, QYLD, QQQM)
+- Mutual Fund (for mutual funds, often 5-letter ending in X: VFIAX, TRMVX, SELCX, PFFRX)
+- Closed-End (for closed-end funds: PDI, PTY, PCI, PIMCO income funds)
+- Bond (for fixed income)
 
-IMPORTANT: Use "CEF" (not "Closed-End Fund") for the type column to avoid parsing issues.
+NOTE: PDI (PIMCO Dynamic Income) is a Closed-End fund, NOT a Mutual Fund.
 
 Important:
 - Include ALL positions you can see
