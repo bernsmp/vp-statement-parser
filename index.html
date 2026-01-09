@@ -1132,9 +1132,295 @@
                 justify-content: center;
             }
         }
+
+        /* Settings Button */
+        .settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .settings-btn:hover {
+            background: var(--navy);
+            border-color: var(--navy);
+        }
+
+        .settings-btn:hover svg {
+            stroke: var(--white);
+        }
+
+        .settings-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--navy);
+            transition: stroke 0.3s ease;
+        }
+
+        .settings-btn.has-key::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        /* Settings Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: var(--shadow-xl);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.5rem;
+            color: var(--navy);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: var(--ice);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--teal);
+        }
+
+        .modal-close svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+        }
+
+        .setting-group {
+            margin-bottom: 24px;
+        }
+
+        .setting-label {
+            display: block;
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 8px;
+        }
+
+        .setting-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: var(--navy);
+        }
+
+        .setting-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            margin-top: 12px;
+        }
+
+        .api-status.connected {
+            background: var(--success-light);
+            color: #065F46;
+        }
+
+        .api-status.not-connected {
+            background: var(--ice);
+            color: var(--text-muted);
+        }
+
+        .api-status svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        /* AI Mode Choice Modal */
+        .choice-modal {
+            text-align: center;
+        }
+
+        .choice-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.25rem;
+            color: var(--navy);
+            margin-bottom: 8px;
+        }
+
+        .choice-description {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .choice-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .choice-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .choice-btn:hover {
+            border-color: var(--navy);
+            background: var(--ice);
+        }
+
+        .choice-btn.recommended {
+            border-color: var(--navy);
+            background: linear-gradient(135deg, var(--ice) 0%, var(--teal-light) 100%);
+        }
+
+        .choice-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .choice-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--white);
+        }
+
+        .choice-icon.secondary {
+            background: var(--ice-blue);
+        }
+
+        .choice-icon.secondary svg {
+            stroke: var(--navy);
+        }
+
+        .choice-text h4 {
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 4px;
+        }
+
+        .choice-text p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .choice-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--success);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 6px;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
+    <!-- Settings Button -->
+    <button class="settings-btn" id="settingsBtn" onclick="openSettings()" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+    </button>
+
     <div class="ambient-bg">
         <div class="ambient-orb ambient-orb-1"></div>
         <div class="ambient-orb ambient-orb-2"></div>
@@ -1341,6 +1627,77 @@
         <span id="toastMessage">Success!</span>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+                <button class="modal-close" onclick="closeSettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">Claude API Key</label>
+                <p class="setting-description">Enable AI-powered document reading for more accurate extraction from scanned PDFs.</p>
+                <input type="password" class="setting-input" id="apiKeyInput" placeholder="sk-ant-api...">
+                <div class="api-status" id="apiStatus">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>No API key configured</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Choice Modal -->
+    <div class="modal-overlay" id="choiceModal">
+        <div class="modal choice-modal">
+            <h3 class="choice-title">Scanned Document Detected</h3>
+            <p class="choice-description">This PDF appears to be scanned. How would you like to extract the data?</p>
+            <div class="choice-options">
+                <button class="choice-btn recommended" onclick="processWithAI()">
+                    <div class="choice-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
+                            <path d="M16 14v1a4 4 0 0 1-8 0v-1"/>
+                            <path d="M12 18v4"/>
+                            <path d="M8 22h8"/>
+                        </svg>
+                    </div>
+                    <div class="choice-text">
+                        <h4>AI-Powered Reading <span class="choice-badge">Recommended</span></h4>
+                        <p>Uses Claude Vision for higher accuracy. Best for complex or low-quality scans.</p>
+                    </div>
+                </button>
+                <button class="choice-btn" onclick="processWithOCR()">
+                    <div class="choice-icon secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <path d="M7 7h.01"/>
+                            <path d="M17 7h.01"/>
+                            <path d="M7 17h.01"/>
+                            <path d="M17 17h.01"/>
+                        </svg>
+                    </div>
+                    <div class="choice-text">
+                        <h4>Basic OCR</h4>
+                        <p>Uses browser-based OCR. Faster but may miss some data.</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -1351,6 +1708,258 @@
         let accountType = '';
         let statementPeriod = '';
         let usedOCR = false;
+        let pendingPDF = null;
+        let pendingText = '';
+
+        // Settings functions
+        function openSettings() {
+            const apiKey = localStorage.getItem('claude_api_key') || '';
+            document.getElementById('apiKeyInput').value = apiKey;
+            updateApiStatus(apiKey);
+            document.getElementById('settingsModal').classList.add('visible');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('visible');
+        }
+
+        function saveSettings() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (apiKey) {
+                localStorage.setItem('claude_api_key', apiKey);
+            } else {
+                localStorage.removeItem('claude_api_key');
+            }
+            updateApiStatus(apiKey);
+            updateSettingsButton();
+            closeSettings();
+            showToast(apiKey ? 'API key saved' : 'API key removed', true);
+        }
+
+        function updateApiStatus(apiKey) {
+            const status = document.getElementById('apiStatus');
+            if (apiKey && apiKey.startsWith('sk-ant-')) {
+                status.className = 'api-status connected';
+                status.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>API key configured</span>
+                `;
+            } else {
+                status.className = 'api-status not-connected';
+                status.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>No API key configured</span>
+                `;
+            }
+        }
+
+        function updateSettingsButton() {
+            const btn = document.getElementById('settingsBtn');
+            const apiKey = localStorage.getItem('claude_api_key');
+            if (apiKey && apiKey.startsWith('sk-ant-')) {
+                btn.classList.add('has-key');
+            } else {
+                btn.classList.remove('has-key');
+            }
+        }
+
+        // Initialize settings button on page load
+        document.addEventListener('DOMContentLoaded', updateSettingsButton);
+
+        // Choice modal functions
+        function showChoiceModal() {
+            const apiKey = localStorage.getItem('claude_api_key');
+            if (apiKey && apiKey.startsWith('sk-ant-')) {
+                document.getElementById('choiceModal').classList.add('visible');
+            } else {
+                // No API key, just use OCR
+                processWithOCR();
+            }
+        }
+
+        function hideChoiceModal() {
+            document.getElementById('choiceModal').classList.remove('visible');
+        }
+
+        async function processWithAI() {
+            hideChoiceModal();
+            processingOverlay.classList.add('visible');
+            updateProgress('AI Reading Document...', 'Analyzing with Claude Vision...', 20);
+
+            try {
+                const text = await performClaudeVision(pendingPDF);
+                usedOCR = true; // Mark as OCR since it's scanned
+
+                updateProgress('Extracting positions...', 'Analyzing data...', 90);
+                extractMetadata(text);
+                parsedData = parsePositions(text);
+
+                displayResults();
+                setTimeout(() => {
+                    triggerConfetti();
+                    showToast(`Extracted ${parsedData.length} positions (via AI)`, true);
+                }, 300);
+            } catch (error) {
+                console.error('AI processing error:', error);
+                showToast('AI processing failed. Trying OCR...', false);
+                // Fallback to OCR
+                await processWithOCR();
+            } finally {
+                processingOverlay.classList.remove('visible');
+                resetProgress();
+            }
+        }
+
+        async function processWithOCR() {
+            hideChoiceModal();
+            processingOverlay.classList.add('visible');
+
+            try {
+                const text = await performOCR(pendingPDF);
+                usedOCR = true;
+
+                updateProgress('Extracting positions...', 'Analyzing data...', 90);
+                extractMetadata(text);
+                parsedData = parsePositions(text);
+
+                displayResults();
+                setTimeout(() => {
+                    triggerConfetti();
+                    showToast(`Extracted ${parsedData.length} positions (via OCR)`, true);
+                }, 300);
+            } catch (error) {
+                console.error('OCR error:', error);
+                showToast('Error processing document', false);
+            } finally {
+                processingOverlay.classList.remove('visible');
+                resetProgress();
+            }
+        }
+
+        async function performClaudeVision(pdf) {
+            const apiKey = localStorage.getItem('claude_api_key');
+            if (!apiKey) throw new Error('No API key');
+
+            const canvas = document.getElementById('pdfCanvas');
+            const ctx = canvas.getContext('2d');
+            const images = [];
+
+            // Render pages to images
+            const pagesToScan = Math.min(pdf.numPages, 5);
+            for (let i = 1; i <= pagesToScan; i++) {
+                updateProgress('AI Reading Document...', `Preparing page ${i} of ${pagesToScan}...`, 10 + (i / pagesToScan) * 30);
+
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2.0 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                // Convert to base64
+                const dataUrl = canvas.toDataURL('image/png');
+                const base64 = dataUrl.replace('data:image/png;base64,', '');
+                images.push(base64);
+            }
+
+            updateProgress('AI Reading Document...', 'Sending to Claude Vision...', 50);
+
+            // Build API request
+            const content = [];
+            images.forEach((img, i) => {
+                content.push({
+                    type: 'image',
+                    source: {
+                        type: 'base64',
+                        media_type: 'image/png',
+                        data: img
+                    }
+                });
+            });
+            content.push({
+                type: 'text',
+                text: `Extract all investment holdings from this brokerage statement. For each position, provide:
+- Symbol (ticker)
+- Description (fund/stock name)
+- Quantity (number of shares)
+- Price (per share)
+- Market Value (total value)
+
+Return the data in this exact format, one position per line:
+SYMBOL | Description | Quantity | Price | Market Value
+
+Example:
+AAPL | Apple Inc | 100.0000 | 175.50 | 17550.00
+VTI | Vanguard Total Stock Market ETF | 50.0000 | 220.30 | 11015.00
+
+Important:
+- Include ALL positions you can see
+- Use the exact numbers from the statement
+- Don't include totals or summary rows
+- For mutual funds, include the full fund name`
+            });
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 4096,
+                    messages: [{
+                        role: 'user',
+                        content: content
+                    }]
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API request failed');
+            }
+
+            updateProgress('AI Reading Document...', 'Processing response...', 80);
+
+            const data = await response.json();
+            const aiText = data.content[0].text;
+
+            console.log('=== CLAUDE VISION OUTPUT ===');
+            console.log(aiText);
+
+            // Convert AI output to the format our parser expects
+            return convertAIOutputToText(aiText);
+        }
+
+        function convertAIOutputToText(aiText) {
+            // Parse the AI output and convert to a format our existing parser can handle
+            const lines = aiText.split('\n').filter(line => line.includes('|'));
+            let converted = '';
+
+            lines.forEach(line => {
+                const parts = line.split('|').map(p => p.trim());
+                if (parts.length >= 5) {
+                    const [symbol, description, quantity, price, marketValue] = parts;
+                    // Skip header row
+                    if (symbol.toUpperCase() === 'SYMBOL') return;
+                    // Create a text line that our parser can match
+                    converted += `ETF ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
+                }
+            });
+
+            console.log('=== CONVERTED TEXT ===');
+            console.log(converted);
+            return converted;
+        }
 
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
@@ -1426,13 +2035,16 @@
                 usedOCR = false; // Reset for new file
 
                 if (!hasText) {
-                    // Scanned PDF - use OCR
-                    console.log('No text found, using OCR...');
-                    fullText = await performOCR(pdf);
-                    usedOCR = true;
+                    // Scanned PDF - show choice modal or use OCR
+                    console.log('No text found - scanned document detected');
+                    pendingPDF = pdf;
+                    processingOverlay.classList.remove('visible');
+                    uploadZone.classList.remove('processing');
+                    showChoiceModal();
+                    return;
                 }
 
-                // Step 3: Extract metadata and parse
+                // Step 3: Extract metadata and parse (for text-based PDFs)
                 updateProgress('Extracting positions...', 'Analyzing data...', 90);
                 extractMetadata(fullText);
                 parsedData = parsePositions(fullText);
@@ -1444,8 +2056,7 @@
                 // Celebrate!
                 setTimeout(() => {
                     triggerConfetti();
-                    const ocrNote = !hasText ? ' (via OCR)' : '';
-                    showToast(`Extracted ${parsedData.length} positions${ocrNote}`, true);
+                    showToast(`Extracted ${parsedData.length} positions`, true);
                 }, 300);
 
             } catch (error) {
