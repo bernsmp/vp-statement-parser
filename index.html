@@ -1690,8 +1690,8 @@
                 usedOCR = true; // Mark as OCR since it's scanned
 
                 updateProgress('Extracting positions...', 'Analyzing data...', 90);
-                extractMetadata(text);
-                parsedData = parsePositions(text);
+                // AI output is already parsed - use directly
+                parsedData = text;
 
                 displayResults();
                 setTimeout(() => {
@@ -1782,70 +1782,82 @@
             console.log('=== CLAUDE VISION OUTPUT ===');
             console.log(aiText);
 
-            // Convert AI output to the format our parser expects
-            return convertAIOutputToText(aiText);
+            // Parse AI output directly to position objects
+            return parseAIOutput(aiText);
         }
 
-        function convertAIOutputToText(aiText) {
-            // Parse the AI output and convert to a format our existing parser can handle
-            const lines = aiText.split('\n').filter(line => line.includes('|'));
-            let converted = '';
+        function parseAIOutput(aiText) {
+            const positions = [];
             const seenSymbols = new Set();
+            const lines = aiText.split('\n').filter(line => line.includes('|'));
+
+            // Known symbol classifications
+            const closedEndFunds = ['PDI', 'PTY', 'PCI', 'PKO', 'PHK', 'PCM', 'PFL', 'RCS', 'UTF', 'USA'];
+            const knownETFs = ['SPY', 'QQQ', 'QQQM', 'VTI', 'VOO', 'SPMO', 'QYLD', 'XYLD', 'JEPI', 'SCHD'];
+            const knownEquities = ['AAPL', 'GOOGL', 'GOOG', 'AMZN', 'MSFT', 'META', 'NVDA', 'TSLA', 'BTI', 'UPST'];
 
             lines.forEach(line => {
                 const parts = line.split('|').map(p => p.trim());
+                if (parts.length < 5) return;
+
+                let symbol, description, secType, quantity, price, marketValue;
+
                 if (parts.length >= 6) {
-                    // New format: SYMBOL | Description | Type | Quantity | Price | Market Value
-                    const [symbol, description, secType, quantity, price, marketValue] = parts;
-                    // Skip header row and invalid symbols
-                    const sym = symbol.toUpperCase();
-                    if (sym === 'SYMBOL') return;
-                    if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
-                    // Blacklist common parsing errors
-                    if (['CEF', 'END', 'FUND', 'TYPE', 'BOND', 'ETF'].includes(sym)) return;
-                    // Skip duplicates
-                    if (seenSymbols.has(sym)) return;
-                    seenSymbols.add(sym);
-
-                    // Determine type - use known symbols for accuracy
-                    const closedEndFunds = ['PDI', 'PTY', 'PCI', 'PKO', 'PHK', 'PCM', 'PFL', 'RCS', 'UTF', 'USA'];
-                    const knownETFs = ['SPY', 'QQQ', 'QQQM', 'VTI', 'VOO', 'SPMO', 'QYLD', 'XYLD', 'JEPI', 'SCHD'];
-                    const knownEquities = ['AAPL', 'GOOGL', 'GOOG', 'AMZN', 'MSFT', 'META', 'NVDA', 'TSLA', 'BTI', 'UPST'];
-
-                    let type;
-                    if (closedEndFunds.includes(sym)) {
-                        type = 'Closed-End Fund';
-                    } else if (sym.length === 5 && sym.endsWith('X')) {
-                        type = 'Mutual Fund';  // Most 5-letter symbols ending in X are mutual funds
-                    } else if (knownETFs.includes(sym) || /etf/i.test(description)) {
-                        type = 'ETF';
-                    } else if (knownEquities.includes(sym) || sym.length <= 4) {
-                        type = 'Equity';
-                    } else {
-                        // Fall back to Claude's classification
-                        type = secType;
-                        if (/closed/i.test(secType)) type = 'Closed-End Fund';
-                        else if (/mutual/i.test(secType)) type = 'Mutual Fund';
-                        else if (/equity|stock/i.test(secType)) type = 'Equity';
-                        else if (/etf/i.test(secType)) type = 'ETF';
-                        else if (/bond/i.test(secType)) type = 'Bond';
-                    }
-                    // Create a text line that our parser can match
-                    converted += `${type} ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
-                } else if (parts.length >= 5) {
-                    // Old format fallback: SYMBOL | Description | Quantity | Price | Market Value
-                    const [symbol, description, quantity, price, marketValue] = parts;
-                    if (symbol.toUpperCase() === 'SYMBOL') return;
-                    if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
-                    if (seenSymbols.has(symbol.toUpperCase())) return;
-                    seenSymbols.add(symbol.toUpperCase());
-                    converted += `ETF ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
+                    [symbol, description, secType, quantity, price, marketValue] = parts;
+                } else {
+                    [symbol, description, quantity, price, marketValue] = parts;
+                    secType = 'ETF';
                 }
+
+                const sym = symbol.toUpperCase();
+
+                // Skip invalid entries
+                if (sym === 'SYMBOL') return;
+                if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
+                if (['CEF', 'END', 'FUND', 'TYPE', 'BOND', 'ETF', 'EQUITY'].includes(sym)) return;
+                if (seenSymbols.has(sym)) return;
+                seenSymbols.add(sym);
+
+                // Determine type using known symbols
+                let type;
+                if (closedEndFunds.includes(sym)) {
+                    type = 'Closed-End Fund';
+                } else if (sym.length === 5 && sym.endsWith('X')) {
+                    type = 'Mutual Fund';
+                } else if (knownETFs.includes(sym) || /etf/i.test(description)) {
+                    type = 'ETF';
+                } else if (knownEquities.includes(sym)) {
+                    type = 'Equity';
+                } else if (/closed/i.test(secType)) {
+                    type = 'Closed-End Fund';
+                } else if (/mutual/i.test(secType)) {
+                    type = 'Mutual Fund';
+                } else if (/equity|stock/i.test(secType)) {
+                    type = 'Equity';
+                } else if (/bond/i.test(secType)) {
+                    type = 'Bond';
+                } else {
+                    type = 'ETF';
+                }
+
+                // Parse numbers
+                const qty = parseFloat(quantity.replace(/,/g, '')) || 0;
+                const prc = parseFloat(price.replace(/,/g, '')) || 0;
+                const val = parseFloat(marketValue.replace(/,/g, '')) || 0;
+
+                positions.push({
+                    symbol: sym,
+                    description: description,
+                    type: type,
+                    quantity: qty,
+                    price: prc,
+                    marketValue: val
+                });
             });
 
-            console.log('=== CONVERTED TEXT ===');
-            console.log(converted);
-            return converted;
+            console.log('=== PARSED AI OUTPUT ===');
+            console.log(positions);
+            return positions;
         }
 
         const uploadZone = document.getElementById('uploadZone');
