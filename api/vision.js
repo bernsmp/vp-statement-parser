@@ -34,16 +34,25 @@ export default async function handler(req, res) {
             text: `Extract all investment holdings from this brokerage statement. For each position, provide:
 - Symbol (ticker)
 - Description (fund/stock name)
+- Security Type (Equity, ETF, Mutual Fund, or Bond)
 - Quantity (number of shares)
 - Price (per share)
 - Market Value (total value)
 
 Return the data in this exact format, one position per line:
-SYMBOL | Description | Quantity | Price | Market Value
+SYMBOL | Description | Type | Quantity | Price | Market Value
 
 Example:
-AAPL | Apple Inc | 100.0000 | 175.50 | 17550.00
-VTI | Vanguard Total Stock Market ETF | 50.0000 | 220.30 | 11015.00
+AAPL | Apple Inc | Equity | 100.0000 | 175.50 | 17550.00
+VTI | Vanguard Total Stock Market ETF | ETF | 50.0000 | 220.30 | 11015.00
+VFIAX | Vanguard 500 Index Fund | Mutual Fund | 25.0000 | 400.00 | 10000.00
+
+Security Type Guidelines:
+- Equity: Individual stocks (AAPL, GOOGL, AMZN, BTI, UPST, etc.)
+- ETF: Exchange-traded funds (SPY, QQQ, SPMO, QYLD, QQQM, etc.)
+- Mutual Fund: Mutual funds, often 5-letter symbols ending in X (VFIAX, TRMVX, SELCX, etc.)
+- Bond: Fixed income securities
+- Closed-End Fund: Funds like PDI, PIMCO funds
 
 Important:
 - Include ALL positions you can see

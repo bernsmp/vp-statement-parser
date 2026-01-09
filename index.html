@@ -1793,11 +1793,24 @@
 
             lines.forEach(line => {
                 const parts = line.split('|').map(p => p.trim());
-                if (parts.length >= 5) {
-                    const [symbol, description, quantity, price, marketValue] = parts;
+                if (parts.length >= 6) {
+                    // New format: SYMBOL | Description | Type | Quantity | Price | Market Value
+                    const [symbol, description, secType, quantity, price, marketValue] = parts;
                     // Skip header row
                     if (symbol.toUpperCase() === 'SYMBOL') return;
+                    // Normalize security type
+                    let type = secType;
+                    if (/mutual\s*fund/i.test(secType)) type = 'Mutual Fund';
+                    else if (/equity|stock/i.test(secType)) type = 'Equity';
+                    else if (/etf/i.test(secType)) type = 'ETF';
+                    else if (/bond/i.test(secType)) type = 'Bond';
+                    else if (/closed.*end/i.test(secType)) type = 'Closed-End Fund';
                     // Create a text line that our parser can match
+                    converted += `${type} ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
+                } else if (parts.length >= 5) {
+                    // Old format fallback: SYMBOL | Description | Quantity | Price | Market Value
+                    const [symbol, description, quantity, price, marketValue] = parts;
+                    if (symbol.toUpperCase() === 'SYMBOL') return;
                     converted += `ETF ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
                 }
             });
