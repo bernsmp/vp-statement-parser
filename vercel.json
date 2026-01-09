@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/vision.js": {
+      "maxDuration": 60
+    }
+  }
+}
