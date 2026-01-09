@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Statement Parser | Vantage Point Financial</title>
+    <title>Paul's Perfect PDF Parser | Vantage Point Financial</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
@@ -625,6 +625,118 @@
             margin-top: 16px;
         }
 
+        /* OCR Warning Banner */
+        .ocr-warning {
+            display: none;
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border: 1px solid #F59E0B;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            animation: slideUp 0.5s ease;
+        }
+
+        .ocr-warning.visible {
+            display: block;
+        }
+
+        .ocr-warning-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .ocr-warning-icon {
+            width: 24px;
+            height: 24px;
+            background: #F59E0B;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .ocr-warning-title {
+            font-weight: 600;
+            color: #92400E;
+        }
+
+        .ocr-warning-text {
+            color: #78350F;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .ocr-warning-verify {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .ocr-warning-verify label {
+            font-size: 0.85rem;
+            color: #92400E;
+            font-weight: 500;
+        }
+
+        .ocr-warning-verify input {
+            padding: 8px 12px;
+            border: 1px solid #F59E0B;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 140px;
+            background: white;
+        }
+
+        .verify-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .verify-status.match {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .verify-status.mismatch {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* Editable cells */
+        td[contenteditable="true"] {
+            cursor: text;
+            position: relative;
+        }
+
+        td[contenteditable="true"]:hover {
+            background: var(--teal-light);
+        }
+
+        td[contenteditable="true"]:focus {
+            outline: 2px solid var(--navy);
+            outline-offset: -2px;
+            background: white;
+        }
+
+        .edit-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 12px 24px;
+            background: var(--ice);
+            border-top: 1px solid var(--border);
+            margin: 0;
+        }
+
         /* Results Section */
         .results-section {
             display: none;
@@ -1039,7 +1151,7 @@
                 <span class="brand-name">Vantage Point Financial</span>
             </div>
             <div class="hero-title">
-                <h1><span>Statement Parser</span></h1>
+                <h1><span>Paul's Perfect PDF Parser</span></h1>
                 <p class="tagline">Extract portfolio positions in seconds, not minutes</p>
             </div>
         </header>
@@ -1122,6 +1234,23 @@
         </div>
 
         <section class="results-section" id="resultsSection">
+            <!-- OCR Warning Banner -->
+            <div class="ocr-warning" id="ocrWarning">
+                <div class="ocr-warning-header">
+                    <div class="ocr-warning-icon">!</div>
+                    <span class="ocr-warning-title">Scanned Document Detected</span>
+                </div>
+                <div class="ocr-warning-text">
+                    This PDF was scanned, so we used OCR to read the text. Please verify the extracted data matches your statement.
+                    <strong>Click any cell to edit</strong> if you spot errors.
+                </div>
+                <div class="ocr-warning-verify">
+                    <label>Statement total from PDF:</label>
+                    <input type="text" id="expectedTotal" placeholder="$114,083.44" oninput="verifyTotal()">
+                    <span class="verify-status" id="verifyStatus"></span>
+                </div>
+            </div>
+
             <div class="results-header">
                 <div class="results-title-group">
                     <h2 class="results-title">Portfolio Holdings</h2>
@@ -1221,6 +1350,7 @@
         let accountNumber = '';
         let accountType = '';
         let statementPeriod = '';
+        let usedOCR = false;
 
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
@@ -1293,11 +1423,13 @@
 
                 // Step 2: Check if we got meaningful text
                 const hasText = fullText.replace(/\s/g, '').length > 500;
+                usedOCR = false; // Reset for new file
 
                 if (!hasText) {
                     // Scanned PDF - use OCR
                     console.log('No text found, using OCR...');
                     fullText = await performOCR(pdf);
+                    usedOCR = true;
                 }
 
                 // Step 3: Extract metadata and parse
@@ -1708,6 +1840,16 @@
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
 
+            // Show/hide OCR warning
+            const ocrWarning = document.getElementById('ocrWarning');
+            if (usedOCR) {
+                ocrWarning.classList.add('visible');
+                document.getElementById('expectedTotal').value = '';
+                document.getElementById('verifyStatus').textContent = '';
+            } else {
+                ocrWarning.classList.remove('visible');
+            }
+
             let totalValue = 0;
 
             parsedData.forEach((p, i) => {
@@ -1715,6 +1857,10 @@
 
                 const row = document.createElement('tr');
                 row.style.animationDelay = `${i * 0.05}s`;
+
+                // Make cells editable if OCR was used
+                const editable = usedOCR ? 'contenteditable="true"' : '';
+
                 row.innerHTML = `
                     <td>
                         <div class="cell-symbol">
@@ -1724,11 +1870,24 @@
                     </td>
                     <td><span class="description">${p.description}</span></td>
                     <td><span class="type-badge">${p.securityType}</span></td>
-                    <td class="number">${formatNumber(p.quantity, 4)}</td>
-                    <td class="number">$${formatNumber(p.price, 2)}</td>
-                    <td class="number value">$${formatNumber(p.marketValue, 2)}</td>
+                    <td class="number" ${editable} data-field="quantity" data-index="${i}">${formatNumber(p.quantity, 4)}</td>
+                    <td class="number" ${editable} data-field="price" data-index="${i}">$${formatNumber(p.price, 2)}</td>
+                    <td class="number value" ${editable} data-field="marketValue" data-index="${i}">$${formatNumber(p.marketValue, 2)}</td>
                 `;
                 tableBody.appendChild(row);
+
+                // Add edit handlers for editable cells
+                if (usedOCR) {
+                    row.querySelectorAll('[contenteditable="true"]').forEach(cell => {
+                        cell.addEventListener('blur', handleCellEdit);
+                        cell.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                cell.blur();
+                            }
+                        });
+                    });
+                }
             });
 
             // Summary row
@@ -1751,6 +1910,17 @@
             if (accountType) infoText.push(accountType);
             if (statementPeriod) infoText.push(statementPeriod);
             document.getElementById('accountInfo').textContent = infoText.join(' • ') || 'Portfolio positions extracted';
+
+            // Add edit hint if OCR was used
+            const existingHint = document.querySelector('.edit-hint');
+            if (existingHint) existingHint.remove();
+
+            if (usedOCR) {
+                const hint = document.createElement('p');
+                hint.className = 'edit-hint';
+                hint.textContent = 'Click any Quantity, Price, or Market Value cell to edit. Press Enter or click outside to save.';
+                document.querySelector('.table-container').appendChild(hint);
+            }
 
             resultsSection.classList.add('visible');
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1820,10 +1990,12 @@
             fileInput.value = '';
             fileCard.classList.remove('visible');
             resultsSection.classList.remove('visible');
+            document.getElementById('ocrWarning').classList.remove('visible');
             parsedData = [];
             currentFile = null;
             clientName = '';
             accountNumber = '';
+            usedOCR = false;
         }
 
         function showToast(message, success = true) {
@@ -1836,6 +2008,102 @@
             setTimeout(() => {
                 toast.classList.remove('visible');
             }, 4000);
+        }
+
+        function handleCellEdit(e) {
+            const cell = e.target;
+            const field = cell.dataset.field;
+            const index = parseInt(cell.dataset.index);
+
+            // Parse the value (remove $ and commas)
+            let value = cell.textContent.replace(/[$,]/g, '').trim();
+            const numValue = parseFloat(value);
+
+            if (isNaN(numValue) || numValue < 0) {
+                // Reset to original value
+                if (field === 'quantity') {
+                    cell.textContent = formatNumber(parsedData[index].quantity, 4);
+                } else if (field === 'price') {
+                    cell.textContent = '$' + formatNumber(parsedData[index].price, 2);
+                } else if (field === 'marketValue') {
+                    cell.textContent = '$' + formatNumber(parsedData[index].marketValue, 2);
+                }
+                return;
+            }
+
+            // Update the data
+            parsedData[index][field] = numValue;
+
+            // Format the cell
+            if (field === 'quantity') {
+                cell.textContent = formatNumber(numValue, 4);
+            } else if (field === 'price') {
+                cell.textContent = '$' + formatNumber(numValue, 2);
+            } else if (field === 'marketValue') {
+                cell.textContent = '$' + formatNumber(numValue, 2);
+            }
+
+            // Recalculate totals
+            recalculateTotals();
+        }
+
+        function recalculateTotals() {
+            let totalValue = 0;
+            parsedData.forEach(p => {
+                totalValue += p.marketValue;
+            });
+
+            // Update summary row
+            const summaryRow = document.querySelector('.summary-row .number.value');
+            if (summaryRow) {
+                summaryRow.textContent = '$' + formatNumber(totalValue, 2);
+            }
+
+            // Update stats
+            document.getElementById('totalValue').textContent = '$' + formatNumber(totalValue, 2);
+
+            // Re-verify total if user entered expected
+            verifyTotal();
+        }
+
+        function verifyTotal() {
+            const input = document.getElementById('expectedTotal');
+            const status = document.getElementById('verifyStatus');
+            const rawValue = input.value.trim();
+
+            if (!rawValue) {
+                status.textContent = '';
+                status.className = 'verify-status';
+                return;
+            }
+
+            // Parse user input (allow $, commas)
+            const expectedValue = parseFloat(rawValue.replace(/[$,]/g, ''));
+
+            if (isNaN(expectedValue)) {
+                status.textContent = '';
+                status.className = 'verify-status';
+                return;
+            }
+
+            // Calculate current total
+            let actualTotal = 0;
+            parsedData.forEach(p => {
+                actualTotal += p.marketValue;
+            });
+
+            // Check if they match (within $1 tolerance for rounding)
+            const diff = Math.abs(actualTotal - expectedValue);
+            const percentDiff = (diff / expectedValue) * 100;
+
+            if (diff < 1 || percentDiff < 0.1) {
+                status.textContent = 'Totals match!';
+                status.className = 'verify-status match';
+            } else {
+                const diffFormatted = diff.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                status.textContent = `Off by $${diffFormatted}`;
+                status.className = 'verify-status mismatch';
+            }
         }
 
         function triggerConfetti() {
