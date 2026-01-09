@@ -1790,6 +1790,7 @@
             // Parse the AI output and convert to a format our existing parser can handle
             const lines = aiText.split('\n').filter(line => line.includes('|'));
             let converted = '';
+            const seenSymbols = new Set();
 
             lines.forEach(line => {
                 const parts = line.split('|').map(p => p.trim());
@@ -1798,19 +1799,27 @@
                     const [symbol, description, secType, quantity, price, marketValue] = parts;
                     // Skip header row
                     if (symbol.toUpperCase() === 'SYMBOL') return;
+                    // Skip invalid symbols (like "End" from parsing errors)
+                    if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
+                    // Skip duplicates
+                    if (seenSymbols.has(symbol.toUpperCase())) return;
+                    seenSymbols.add(symbol.toUpperCase());
                     // Normalize security type
                     let type = secType;
                     if (/mutual\s*fund/i.test(secType)) type = 'Mutual Fund';
                     else if (/equity|stock/i.test(secType)) type = 'Equity';
-                    else if (/etf/i.test(secType)) type = 'ETF';
+                    else if (/^etf$/i.test(secType)) type = 'ETF';
                     else if (/bond/i.test(secType)) type = 'Bond';
-                    else if (/closed.*end/i.test(secType)) type = 'Closed-End Fund';
+                    else if (/cef/i.test(secType) || /closed.*end/i.test(secType)) type = 'CEF';
                     // Create a text line that our parser can match
                     converted += `${type} ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
                 } else if (parts.length >= 5) {
                     // Old format fallback: SYMBOL | Description | Quantity | Price | Market Value
                     const [symbol, description, quantity, price, marketValue] = parts;
                     if (symbol.toUpperCase() === 'SYMBOL') return;
+                    if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
+                    if (seenSymbols.has(symbol.toUpperCase())) return;
+                    seenSymbols.add(symbol.toUpperCase());
                     converted += `ETF ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
                 }
             });

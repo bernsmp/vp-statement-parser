@@ -50,9 +50,11 @@ VFIAX | Vanguard 500 Index Fund | Mutual Fund | 25.0000 | 400.00 | 10000.00
 Security Type Guidelines:
 - Equity: Individual stocks (AAPL, GOOGL, AMZN, BTI, UPST, etc.)
 - ETF: Exchange-traded funds (SPY, QQQ, SPMO, QYLD, QQQM, etc.)
-- Mutual Fund: Mutual funds, often 5-letter symbols ending in X (VFIAX, TRMVX, SELCX, etc.)
+- Mutual Fund: Mutual funds, often 5-letter symbols ending in X (VFIAX, TRMVX, SELCX, PFFRX, etc.)
+- CEF: Closed-end funds like PDI, PTY, PCI, PIMCO income funds
 - Bond: Fixed income securities
-- Closed-End Fund: Funds like PDI, PIMCO funds
+
+IMPORTANT: Use "CEF" (not "Closed-End Fund") for the type column to avoid parsing issues.
 
 Important:
 - Include ALL positions you can see
