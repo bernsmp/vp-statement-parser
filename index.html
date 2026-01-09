@@ -1797,21 +1797,39 @@
                 if (parts.length >= 6) {
                     // New format: SYMBOL | Description | Type | Quantity | Price | Market Value
                     const [symbol, description, secType, quantity, price, marketValue] = parts;
-                    // Skip header row
-                    if (symbol.toUpperCase() === 'SYMBOL') return;
-                    // Skip invalid symbols (like "End", "CEF", "Fund" from parsing errors)
+                    // Skip header row and invalid symbols
+                    const sym = symbol.toUpperCase();
+                    if (sym === 'SYMBOL') return;
                     if (!/^[A-Z]{1,5}$/i.test(symbol)) return;
-                    if (['CEF', 'END', 'FUND', 'TYPE'].includes(symbol.toUpperCase())) return;
+                    // Blacklist common parsing errors
+                    if (['CEF', 'END', 'FUND', 'TYPE', 'BOND', 'ETF'].includes(sym)) return;
                     // Skip duplicates
-                    if (seenSymbols.has(symbol.toUpperCase())) return;
-                    seenSymbols.add(symbol.toUpperCase());
-                    // Normalize security type
-                    let type = secType;
-                    if (/closed/i.test(secType)) type = 'Closed-End Fund';
-                    else if (/mutual\s*fund/i.test(secType)) type = 'Mutual Fund';
-                    else if (/equity|stock/i.test(secType)) type = 'Equity';
-                    else if (/^etf$/i.test(secType)) type = 'ETF';
-                    else if (/bond/i.test(secType)) type = 'Bond';
+                    if (seenSymbols.has(sym)) return;
+                    seenSymbols.add(sym);
+
+                    // Determine type - use known symbols for accuracy
+                    const closedEndFunds = ['PDI', 'PTY', 'PCI', 'PKO', 'PHK', 'PCM', 'PFL', 'RCS', 'UTF', 'USA'];
+                    const knownETFs = ['SPY', 'QQQ', 'QQQM', 'VTI', 'VOO', 'SPMO', 'QYLD', 'XYLD', 'JEPI', 'SCHD'];
+                    const knownEquities = ['AAPL', 'GOOGL', 'GOOG', 'AMZN', 'MSFT', 'META', 'NVDA', 'TSLA', 'BTI', 'UPST'];
+
+                    let type;
+                    if (closedEndFunds.includes(sym)) {
+                        type = 'Closed-End Fund';
+                    } else if (sym.length === 5 && sym.endsWith('X')) {
+                        type = 'Mutual Fund';  // Most 5-letter symbols ending in X are mutual funds
+                    } else if (knownETFs.includes(sym) || /etf/i.test(description)) {
+                        type = 'ETF';
+                    } else if (knownEquities.includes(sym) || sym.length <= 4) {
+                        type = 'Equity';
+                    } else {
+                        // Fall back to Claude's classification
+                        type = secType;
+                        if (/closed/i.test(secType)) type = 'Closed-End Fund';
+                        else if (/mutual/i.test(secType)) type = 'Mutual Fund';
+                        else if (/equity|stock/i.test(secType)) type = 'Equity';
+                        else if (/etf/i.test(secType)) type = 'ETF';
+                        else if (/bond/i.test(secType)) type = 'Bond';
+                    }
                     // Create a text line that our parser can match
                     converted += `${type} ${symbol} ${description} ${quantity} ${price} ${marketValue}\n`;
                 } else if (parts.length >= 5) {
